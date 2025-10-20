@@ -2,7 +2,7 @@ module "eks" {
   source  = "terraform-aws-modules/eks/aws"
   version = "~> 21.0"
 
-  name               = "${var.environment}-cluster"
+  name               = "${var.environment}-eks-cluster"
   kubernetes_version = "1.33"
 
   addons = {

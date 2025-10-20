@@ -1,5 +1,5 @@
-bucket         = "atid-terraform-state-bucket"
+bucket         = "yoni-terraform-state-bucket"
 key            = "core/development/terraform.tfstate"
-region         = "us-east-1"
+region         = "eu-west-1"
 dynamodb_table = "terraform-locks"
 encrypt        = true
