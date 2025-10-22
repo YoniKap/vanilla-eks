@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: nginx
-          image: nginx:1.25-alpine
+          image: 535462129077.dkr.ecr.eu-west-1.amazonaws.com/app:latest
           ports:
             - containerPort: 80
           resources:
