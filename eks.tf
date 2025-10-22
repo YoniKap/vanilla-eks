@@ -3,7 +3,7 @@ module "eks" {
   version = "~> 21.0"
 
   name               = "${var.environment}-eks-cluster"
-  kubernetes_version = "1.33"
+  kubernetes_version = var.eks_version
 
   addons = {
     coredns                = {}
@@ -13,6 +13,18 @@ module "eks" {
     kube-proxy             = {}
     vpc-cni                = {
       before_compute = true
+    }
+  }
+
+  fargate_profiles = {
+    fargate = {
+      name       = "fargate"
+      subnet_ids = module.vpc.private_subnets
+      selectors = [
+        {
+          namespace = "fargate"
+        }
+      ]
     }
   }
 
@@ -43,4 +55,80 @@ module "eks" {
     Environment = "dev"
     Terraform   = "true"
   }
+
+}
+
+
+module "cluster_autoscaler_irsa" {
+  source  = "terraform-aws-modules/iam/aws//modules/iam-assumable-role-with-oidc"
+  version = "~> 5.46.0"
+
+  create_role                   = true
+  role_name                     = "${var.environment}-cluster-autoscaler"
+  provider_url                  = replace(module.eks.cluster_oidc_issuer_url, "https://", "")
+                                  #       oidc url of the cluster for the role trust policy 
+  role_policy_arns              = [aws_iam_policy.cluster_autoscaler.arn]
+  oidc_fully_qualified_subjects = ["system:serviceaccount:kube-system:cluster-autoscaler"]
+                                  #        resource type  namespace   resource name 
+}
+
+resource "aws_iam_policy" "cluster_autoscaler" {
+  name        = "${var.environment}-cluster-autoscaler-policy"
+  description = "EKS Cluster Autoscaler permissions"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "autoscaling:DescribeAutoScalingGroups",
+          "autoscaling:DescribeAutoScalingInstances",
+          "autoscaling:DescribeLaunchConfigurations",
+          "autoscaling:DescribeTags",
+          "autoscaling:SetDesiredCapacity",
+          "autoscaling:TerminateInstanceInAutoScalingGroup",
+          "ec2:DescribeLaunchTemplateVersions"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+resource "kubernetes_service_account" "cluster_autoscaler_service_account" {
+  metadata {
+    name      = "cluster-autoscaler"
+    namespace = "kube-system"
+    annotations = {
+      "eks.amazonaws.com/role-arn" = module.cluster_autoscaler_irsa.iam_role_arn
+    }
+  }
+}
+
+resource "helm_release" "cluster_autoscaler" {
+  name       = "cluster-autoscaler"
+  repository = "https://kubernetes.github.io/autoscaler"
+  chart      = "cluster-autoscaler"
+  namespace  = "kube-system"
+  version    = "9.34.0" 
+
+  values = [jsonencode({
+    autoDiscovery = {
+      clusterName = "${var.environment}-eks-cluster"
+    }
+    awsRegion = var.region
+    rbac = {
+      serviceAccount = {
+        create = false
+        name   = "cluster-autoscaler"
+      }
+    }
+    extraArgs = {
+      skip-nodes-with-system-pods    = false
+      balance-similar-node-groups    = true
+      skip-nodes-with-local-storage  = false
+    }
+  })]
+  depends_on = [ module.cluster_autoscaler_irsa, resource.kubernetes_service_account.cluster_autoscaler_service_account ]
 }
