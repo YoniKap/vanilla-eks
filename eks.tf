@@ -16,6 +16,18 @@ module "eks" {
     }
   }
 
+  fargate_profiles = {
+    fargate = {
+      name       = "fargate"
+      subnet_ids = module.vpc.private_subnets
+      selectors = [
+        {
+          namespace = "fargate"
+        }
+      ]
+    }
+  }
+
   # Optional
   endpoint_public_access = true
 
@@ -54,8 +66,10 @@ module "cluster_autoscaler_irsa" {
   create_role                   = true
   role_name                     = "${var.environment}-cluster-autoscaler"
   provider_url                  = replace(module.eks.cluster_oidc_issuer_url, "https://", "")
+                                  #       oidc url of the cluster for the role trust policy 
   role_policy_arns              = [aws_iam_policy.cluster_autoscaler.arn]
   oidc_fully_qualified_subjects = ["system:serviceaccount:kube-system:cluster-autoscaler"]
+                                  #        resource type  namespace   resource name 
 }
 
 resource "aws_iam_policy" "cluster_autoscaler" {
