@@ -1,0 +1,20 @@
+controller:
+  adminUser: admin
+  adminPassword: admin123
+
+  # If you're on EKS, GKE
+  serviceType: LoadBalancer
+
+  installPlugins:
+    - kubernetes:4269.v9e2e4f8f0f20
+    - workflow-aggregator:590.v6a_d052e5a_a_b_5
+    - git:5.5.2
+    - configuration-as-code:1808.vf1c6b_44e7d66
+
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
