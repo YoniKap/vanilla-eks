@@ -1,7 +1,7 @@
 module "jenkins" {
-  source = "./modules"
+  source = "./modules/jenkins"
 
   # optional vars if you want to parameterize
   namespace     = "jenkins"
-  chart_version = "5.3.2"
+
 }

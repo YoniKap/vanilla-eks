@@ -29,7 +29,3 @@ variable "eks_node_sizes" {
   type = list(string)
   description = "size of eks nodes"
 }
-variable "ecr_names" {
-  type = list(string)
-  description = "an array with all of the ecr names to create"
-}

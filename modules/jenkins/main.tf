@@ -1,7 +1,7 @@
 # Create namespace for Jenkins
 resource "kubernetes_namespace" "jenkins" {
   metadata {
-    name = "jenkins"
+    name = var.namespace
   }
 }
 
